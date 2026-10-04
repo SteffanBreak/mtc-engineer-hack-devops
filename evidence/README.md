@@ -7,6 +7,8 @@
 - `resilience-arm64.json`: 55 HTTP-запросов во время rolling update, 0 ошибок; сохранение исходной записи Loki и исторического sample Prometheus после перезапуска.
 - `verification-fresh-arm64.json`: полный прогон на второй чистой Ubuntu, без переноса кэша образов, секретов, kubeconfig или данных первой VM.
 - `idempotence-fresh-arm64.json`: повтор bootstrap/deploy сохранил UID кластера и PVC, секреты и все рабочие Pod; после повтора verify также прошёл.
+- `verification-audit-arm64.json`: повторный аудит после усиления проверок — точный HTTPS-ответ, второй TLS hostname, оба Envoy targets, 20 успешных HTTP-ответов, конечные числовые значения восьми панелей и завершённые ревизии Deployment.
+- `idempotence-audit-arm64.json`: повтор bootstrap/deploy после добавления предварительных защит снова сохранил кластер, PVC, секреты и все 14 рабочих Pod.
 
 Отчёты не содержат ключей, kubeconfig или паролей. Число ответов canary статистическое: следующий прогон не обязан дать ровно 20 из 200. `make verify`, `make demo`, `make resilience` заново создают отчёты в приватном `.local/`; публикация отчёта не является частью установки.
 

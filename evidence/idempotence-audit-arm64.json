@@ -1,0 +1,11 @@
+{
+  "time_utc": "2026-10-04T10:45:44.808387+00:00",
+  "passed": true,
+  "checks": {
+    "cluster_unchanged": true,
+    "pvcs_unchanged": true,
+    "secrets_unchanged": true,
+    "ready_pods_unchanged": true
+  },
+  "ready_pod_count": 14
+}

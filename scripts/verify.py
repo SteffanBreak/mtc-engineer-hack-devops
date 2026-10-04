@@ -5,6 +5,7 @@ import base64
 import contextlib
 import datetime
 import json
+import math
 import os
 from pathlib import Path
 import socket
@@ -95,6 +96,9 @@ def conditions(resource, required):
 
 
 def main(extended):
+    selected_uid = kjson('get', 'namespace', 'kube-system')['metadata']['uid']
+    recorded_uid = run('sudo', 'cat', '/var/lib/mtc-devops/cluster.uid')
+    check('cluster identity', selected_uid == recorded_uid, 'matches the dedicated local lab')
     namespace = kjson('get', 'namespace', 'mtc-lab')
     check('dedicated cluster', namespace['metadata']['labels'].get('mtc-managed') == 'true', 'namespace marker')
     nodes = kjson('get', 'nodes')['items']
@@ -111,8 +115,13 @@ def main(extended):
     workloads = kjson('get', 'deployments', '-A')['items']
     selected = [w for w in workloads if w['metadata']['namespace'] in
                 ['mtc-lab', 'mtc-observability', 'envoy-gateway-system']]
-    check('deployments Ready', bool(selected) and all(w.get('status', {}).get('availableReplicas', 0)
-          >= w['spec'].get('replicas', 1) for w in selected), f'{len(selected)} deployments')
+    def deployment_ready(w):
+        status, replicas = w.get('status', {}), w['spec'].get('replicas', 1)
+        return (status.get('observedGeneration', 0) >= w['metadata']['generation']
+                and all(status.get(key, 0) == replicas for key in
+                        ['updatedReplicas', 'readyReplicas', 'availableReplicas']))
+    check('deployments Ready', bool(selected) and all(deployment_ready(w) for w in selected),
+          f'{len(selected)} deployments; current generation and all desired replicas')
     claims = kjson('-n', 'mtc-observability', 'get', 'pvc')['items']
     check('persistent volumes', len(claims) >= 3 and all(c['status']['phase'] == 'Bound' for c in claims),
           ', '.join(sorted(c['metadata']['name'] for c in claims)))
@@ -132,7 +141,11 @@ def main(extended):
 
     check('HTTP Hello World', http(path='/?check=' + token) == ('Hello World! version=stable', 200), 'stable through Gateway')
     check('path routing', http(path='/canary?check=' + token) == ('Hello World! version=canary', 200), '/canary → canary')
-    check('TLS with certificate verification', http(tls=True)[1] == 200, 'SAN demo.mtc.test + trusted demo certificate')
+    check('TLS with certificate verification', http(tls=True) == ('Hello World! version=stable', 200),
+          'SAN demo.mtc.test + trusted demo certificate + exact response')
+    split_body, split_code = http(host='split.mtc.test', tls=True)
+    check('TLS second hostname', split_code == 200 and split_body in
+          ['Hello World! version=stable', 'Hello World! version=canary'], 'SAN split.mtc.test + weighted route')
     check('hostname isolation', http(host='unmatched.invalid')[1] == 404, 'unknown hostname rejected')
     check('error log trigger', http(path='/error-test/' + token)[1] == 404, 'Nginx access + file error')
 
@@ -144,13 +157,17 @@ def main(extended):
         for job in required_jobs:
             def healthy_job():
                 current = api(prom, '/api/v1/targets')['activeTargets']
-                return [t for t in current if t['health'] == 'up' and
-                        job in (t['labels'].get('job', '') + t['scrapePool'])]
+                matched = [t for t in current if t['health'] == 'up' and
+                           job in (t['labels'].get('job', '') + t['scrapePool'])]
+                return matched if len(matched) >= (2 if job == 'envoy' else 1) else []
             matched = wait_for(healthy_job)
             check('Prometheus target ' + job, bool(matched), f'{len(matched)} healthy target(s)')
         def query(expr):
             return api(prom, '/api/v1/query', {'query': expr})['result']
-        cpu = wait_for(lambda: query('sum(rate(container_cpu_usage_seconds_total{namespace="mtc-lab",container="nginx"}[2m]))'))
+        def finite_query(expr):
+            samples = query(expr)
+            return samples if samples and all(math.isfinite(float(s['value'][1])) for s in samples) else []
+        cpu = wait_for(lambda: finite_query('sum(rate(container_cpu_usage_seconds_total{namespace="mtc-lab",container="nginx"}[2m]))'))
         check('PromQL CPU', bool(cpu), 'cAdvisor application CPU sample')
         ram = query('sum(container_memory_working_set_bytes{namespace="mtc-lab",container="nginx"})')
         check('PromQL RAM', bool(ram) and float(ram[0]['value'][1]) > 0, 'application working set > 0')
@@ -159,8 +176,9 @@ def main(extended):
         check('PromQL HTTP requests', bool(traffic) and float(traffic[0]['value'][1]) > 0,
               f"request counter={traffic[0]['value'][1]}")
         baseline = float(traffic[0]['value'][1])
-        for _ in range(20):
-            http(path='/?metrics=' + token)
+        responses = [http(path='/?metrics=' + token) for _ in range(20)]
+        check('20 metric test requests succeed', all(r == ('Hello World! version=stable', 200) for r in responses),
+              '20 exact HTTP 200 application responses')
         def increased():
             samples = query(http_expr)
             return samples and float(samples[0]['value'][1]) >= baseline + 20
@@ -168,8 +186,8 @@ def main(extended):
         dashboard_source = json.loads((ROOT / 'dashboards/mtc-demo.json').read_text())
         for panel in dashboard_source['panels']:
             if panel['datasource']['type'] == 'prometheus':
-                samples = wait_for(lambda: query(panel['targets'][0]['expr']))
-                check('dashboard PromQL ' + panel['title'], bool(samples), f'{len(samples)} series')
+                samples = wait_for(lambda: finite_query(panel['targets'][0]['expr']))
+                check('dashboard PromQL ' + panel['title'], bool(samples), f'{len(samples)} series with finite numeric values')
         active = api(prom, '/api/v1/targets')['activeTargets']
         bad = [t['labels'].get('job', t['scrapePool']) for t in active if t['health'] != 'up']
         check('all selected Prometheus targets healthy', not bad, bad or f'{len(active)} healthy targets')

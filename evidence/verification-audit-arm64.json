@@ -1,0 +1,207 @@
+{
+  "time_utc": "2026-10-04T10:45:55.361933+00:00",
+  "passed": true,
+  "checks": [
+    {
+      "check": "cluster identity",
+      "passed": true,
+      "detail": "matches the dedicated local lab"
+    },
+    {
+      "check": "dedicated cluster",
+      "passed": true,
+      "detail": "namespace marker"
+    },
+    {
+      "check": "node Ready",
+      "passed": true,
+      "detail": "1 node(s)"
+    },
+    {
+      "check": "Gateway Accepted + Programmed",
+      "passed": true,
+      "detail": "current generation"
+    },
+    {
+      "check": "HTTPRoute demo-routes",
+      "passed": true,
+      "detail": "Accepted + ResolvedRefs"
+    },
+    {
+      "check": "HTTPRoute demo-split",
+      "passed": true,
+      "detail": "Accepted + ResolvedRefs"
+    },
+    {
+      "check": "HTTPRoute local-preview",
+      "passed": true,
+      "detail": "Accepted + ResolvedRefs"
+    },
+    {
+      "check": "deployments Ready",
+      "passed": true,
+      "detail": "7 deployments; current generation and all desired replicas"
+    },
+    {
+      "check": "persistent volumes",
+      "passed": true,
+      "detail": "mtc-grafana, mtc-loki, prometheus-mtc-monitoring-prometheus-db-prometheus-mtc-monitoring-prometheus-0"
+    },
+    {
+      "check": "HTTP Hello World",
+      "passed": true,
+      "detail": "stable through Gateway"
+    },
+    {
+      "check": "path routing",
+      "passed": true,
+      "detail": "/canary → canary"
+    },
+    {
+      "check": "TLS with certificate verification",
+      "passed": true,
+      "detail": "SAN demo.mtc.test + trusted demo certificate + exact response"
+    },
+    {
+      "check": "TLS second hostname",
+      "passed": true,
+      "detail": "SAN split.mtc.test + weighted route"
+    },
+    {
+      "check": "hostname isolation",
+      "passed": true,
+      "detail": "unknown hostname rejected"
+    },
+    {
+      "check": "error log trigger",
+      "passed": true,
+      "detail": "Nginx access + file error"
+    },
+    {
+      "check": "Prometheus present",
+      "passed": true,
+      "detail": "one persistent Prometheus replica"
+    },
+    {
+      "check": "Prometheus target envoy",
+      "passed": true,
+      "detail": "2 healthy target(s)"
+    },
+    {
+      "check": "Prometheus target node-exporter",
+      "passed": true,
+      "detail": "1 healthy target(s)"
+    },
+    {
+      "check": "Prometheus target kube-state-metrics",
+      "passed": true,
+      "detail": "1 healthy target(s)"
+    },
+    {
+      "check": "Prometheus target loki",
+      "passed": true,
+      "detail": "1 healthy target(s)"
+    },
+    {
+      "check": "Prometheus target kubelet",
+      "passed": true,
+      "detail": "3 healthy target(s)"
+    },
+    {
+      "check": "PromQL CPU",
+      "passed": true,
+      "detail": "cAdvisor application CPU sample"
+    },
+    {
+      "check": "PromQL RAM",
+      "passed": true,
+      "detail": "application working set > 0"
+    },
+    {
+      "check": "PromQL HTTP requests",
+      "passed": true,
+      "detail": "request counter=453"
+    },
+    {
+      "check": "20 metric test requests succeed",
+      "passed": true,
+      "detail": "20 exact HTTP 200 application responses"
+    },
+    {
+      "check": "HTTP counter increases after 20 requests",
+      "passed": true,
+      "detail": "application listeners only; next scrape"
+    },
+    {
+      "check": "dashboard PromQL HTTP запросы / сек",
+      "passed": true,
+      "detail": "1 series with finite numeric values"
+    },
+    {
+      "check": "dashboard PromQL HTTP ответы по классам",
+      "passed": true,
+      "detail": "5 series with finite numeric values"
+    },
+    {
+      "check": "dashboard PromQL HTTP p95: задержка (ms)",
+      "passed": true,
+      "detail": "1 series with finite numeric values"
+    },
+    {
+      "check": "dashboard PromQL HTTP 5xx: доля",
+      "passed": true,
+      "detail": "1 series with finite numeric values"
+    },
+    {
+      "check": "dashboard PromQL CPU: приложение (ядра)",
+      "passed": true,
+      "detail": "3 series with finite numeric values"
+    },
+    {
+      "check": "dashboard PromQL RAM: приложение",
+      "passed": true,
+      "detail": "3 series with finite numeric values"
+    },
+    {
+      "check": "dashboard PromQL Готовые реплики",
+      "passed": true,
+      "detail": "2 series with finite numeric values"
+    },
+    {
+      "check": "dashboard PromQL Состояние Prometheus targets",
+      "passed": true,
+      "detail": "11 series with finite numeric values"
+    },
+    {
+      "check": "all selected Prometheus targets healthy",
+      "passed": true,
+      "detail": "17 healthy targets"
+    },
+    {
+      "check": "Fluentd → Loki stdout",
+      "passed": true,
+      "detail": "mtc-check-1fad72918bf8492383421ec48cb2c9a9"
+    },
+    {
+      "check": "Fluentd → Loki stderr",
+      "passed": true,
+      "detail": "mtc-check-1fad72918bf8492383421ec48cb2c9a9"
+    },
+    {
+      "check": "Grafana data sources",
+      "passed": true,
+      "detail": "Prometheus + Loki provisioned"
+    },
+    {
+      "check": "Grafana dashboard references",
+      "passed": true,
+      "detail": "all panel data sources resolve"
+    },
+    {
+      "check": "Grafana dashboard imported",
+      "passed": true,
+      "detail": "HTTP RPS/codes/p95/5xx, CPU/RAM, replicas, targets, logs"
+    }
+  ],
+  "error": null
+}

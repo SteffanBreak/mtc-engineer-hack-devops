@@ -25,6 +25,14 @@ flowchart LR
 
 Один узел Kubernetes, Calico обеспечивает маршрутизацию Pod и исполнение NetworkPolicy. Приложение принимает соединения только из namespace прокси Envoy; исходящие соединения приложения запрещены. Nginx работает без root, с read-only файловой системой и удалёнными Linux capabilities.
 
+## Почему выбраны эти компоненты
+
+- **kubeadm + Ubuntu 24.04:** приоритетный способ из задания, без зависимости от облачного провайдера; Calico исполняет NetworkPolicy.
+- **Nginx + Envoy Gateway:** публичное простое приложение с однозначным ответом и access/error logs; Gateway API даёт Host/path, TLS и weighted backends через стандартные ресурсы.
+- **kube-prometheus-stack:** Helm chart связывает Prometheus, Operator, exporters и Grafana; PodMonitor/ServiceMonitor позволяют хранить настройку сбора рядом с приложением.
+- **Fluentd + Loki:** соответствует обязательному выбору collector; файловый буфер повторяет доставку, Loki позволяет искать уникальные запросы, Grafana объединяет метрики и журналы.
+- **Bash/Python/Make/Helm:** первоначальный запуск и проверки выполняются несколькими командами; зависимости фиксированы, отдельный управляющий сервер не требуется.
+
 ## Быстрый запуск
 
 Нужна **новая Ubuntu 24.04 amd64 или arm64**, доступ sudo, минимум 2 CPU / 6 GiB RAM / 10 GB свободного диска; рекомендуется 4 CPU / 8 GiB / диск 24 GB или больше. Swap должен быть выключен. Интернет требуется для пакетов, Helm charts, образов и Ruby gem. Проверенный стенд: Ubuntu 24.04.5 arm64, 4 CPU, 8 GiB RAM.
@@ -143,9 +151,11 @@ Fluentd читает только CRI-файлы контейнера `nginx` na
 | Weighted backend | `demo-split` 90/10 | 200 запросов, обе версии, допустимый статистический интервал |
 | Dashboard | `dashboards/mtc-demo.json` | HTTP-коды/p95/CPU/RAM/logs в Grafana |
 | Reliability / security | probes, resources, 2 stable + 2 proxy, PDB, NetworkPolicy, PV Retain | readiness, rollout и проверки восстановления |
-| CI | `.github/workflows/validate.yml` | shell syntax / Helm lint+render / YAML duplicate keys / source secret patterns |
+| CI | `.github/workflows/validate.yml` | Bash/Python syntax / Helm lint+render / YAML duplicate keys / source secret patterns |
 
 CI проверяет исходники; реальная интеграционная проверка выполняется `make verify` на Ubuntu с kubeadm. Положительный lint не подменяет функциональную проверку. Отчёты о фактически выполненных проверках находятся в `evidence/`, включая полный запуск на второй чистой Ubuntu.
+
+Проверка также требует совпадения UID кластера, завершения текущей ревизии Deployment, двух healthy Envoy targets, корректного TLS для обоих имён и конечных числовых значений всех восьми PromQL-панелей (пустой результат, NaN и Infinity не принимаются). Все 20 запросов для проверки HTTP-счётчика должны вернуть точный ожидаемый ответ. Lint дополнительно разбирает синтаксис всех Python-скриптов и YAML вспомогательной локальной среды.
 
 `make resilience` выполняет контролируемый rolling update stable под HTTP-запросами, затем перезапускает Loki и Prometheus и проверяет сохранение исходной записи журнала и исторического sample. Он работает только при совпадении UID стенда. В успешном прогоне приложение обработало 55 запросов без ошибок; результаты: `evidence/resilience-arm64.json`. Для плавного ухода Pod с трафика используется preStop с паузой и `nginx -s quit`.
 

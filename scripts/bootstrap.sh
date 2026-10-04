@@ -10,6 +10,20 @@ source /etc/os-release
 if [[ -e /etc/kubernetes/admin.conf && ! -e /var/lib/mtc-devops/managed ]]; then
   fail 'An existing Kubernetes cluster was found. It will not be modified.'
 fi
+# Validate an existing lab before changing any host packages or configuration.
+if [[ -e /etc/kubernetes/admin.conf ]]; then
+  MTC_PREFLIGHT_VERSION="$(KUBECONFIG=/etc/kubernetes/admin.conf kubectl version -o json | python3 -c 'import json,sys; print(json.load(sys.stdin)["serverVersion"]["gitVersion"])')"
+  [[ "${MTC_PREFLIGHT_VERSION}" == "${KUBERNETES_VERSION}" ]] || fail 'Existing cluster version differs; no host changes were made.'
+  if [[ -e /var/lib/mtc-devops/cluster.uid ]]; then
+    [[ "$(cat /var/lib/mtc-devops/cluster.uid)" == "$(KUBECONFIG=/etc/kubernetes/admin.conf kubectl get namespace kube-system -o jsonpath='{.metadata.uid}')" ]] || fail 'Cluster identity differs; no host changes were made.'
+  fi
+fi
+MTC_OWNER="${SUDO_USER:-root}"
+MTC_OWNER_HOME="$(getent passwd "${MTC_OWNER}" | cut -d: -f6)"
+if [[ -e "${MTC_OWNER_HOME}/.kube/config" ]] && ! cmp -s /etc/kubernetes/admin.conf "${MTC_OWNER_HOME}/.kube/config"; then
+  fail 'An unrelated kubeconfig already exists; no host changes were made.'
+fi
+[[ -z "$(swapon --noheadings --show)" ]] || fail 'Disable swap on this dedicated host before continuing.'
 [[ "$(nproc)" -ge 2 ]] || fail 'At least 2 CPUs are required.'
 [[ "$(awk '/MemTotal/ {print $2}' /proc/meminfo)" -ge 6000000 ]] || fail 'At least 6 GiB RAM is required for the complete stack.'
 [[ "$(df --output=avail -k / | tail -1)" -ge 10000000 ]] || fail 'At least 10 GB free space is required.'
@@ -31,8 +45,6 @@ net.bridge.bridge-nf-call-ip6tables = 1
 net.ipv4.ip_forward = 1
 EOF
 sysctl --system >/dev/null
-# The dedicated cloud image has no swap. Refuse to modify an unexpected swap setup.
-[[ -z "$(swapon --noheadings --show)" ]] || fail 'Disable swap on this dedicated host before continuing.'
 
 log 'Configure containerd with the systemd cgroup driver'
 install -d -m 755 /etc/containerd
@@ -126,8 +138,6 @@ curl --fail --silent --show-error --location --retry 3 "https://get.helm.sh/${MT
 tar -xzf "/var/lib/mtc-devops/${MTC_HELM_ARCHIVE}" -C /var/lib/mtc-devops
 install -m 755 "/var/lib/mtc-devops/linux-${MTC_ARCH}/helm" /usr/local/bin/helm
 
-MTC_OWNER="${SUDO_USER:-root}"
-MTC_OWNER_HOME="$(getent passwd "${MTC_OWNER}" | cut -d: -f6)"
 install -d -m 700 -o "${MTC_OWNER}" "${MTC_OWNER_HOME}/.kube"
 if [[ -e "${MTC_OWNER_HOME}/.kube/config" ]] && ! cmp -s /etc/kubernetes/admin.conf "${MTC_OWNER_HOME}/.kube/config"; then
   fail 'An unrelated kubeconfig already exists; it was not overwritten.'
