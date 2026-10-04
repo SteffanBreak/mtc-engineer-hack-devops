@@ -1,0 +1,86 @@
+fullnameOverride: mtc-monitoring
+defaultRules:
+  create: true
+  rules:
+    etcd: false
+    kubeSchedulerAlerting: false
+    kubeSchedulerRecording: false
+    kubeControllerManager: false
+    kubeProxy: false
+kubeEtcd: { enabled: false }
+kubeScheduler: { enabled: false }
+kubeControllerManager: { enabled: false }
+kubeProxy: { enabled: false }
+# kubeadm binds these endpoints to loopback. We leave that protection in place
+# and explicitly omit the corresponding targets/rules rather than show broken targets.
+grafana:
+  enabled: true
+  admin:
+    existingSecret: mtc-grafana-admin
+  persistence:
+    enabled: true
+    existingClaim: mtc-grafana
+  initChownData: { enabled: false }
+  resources:
+    requests: { cpu: 100m, memory: 192Mi }
+    limits: { cpu: 600m, memory: 512Mi }
+  additionalDataSources:
+    - name: Loki
+      uid: mtc-loki
+      type: loki
+      access: proxy
+      url: http://mtc-loki:3100
+      jsonData: { maxLines: 1000 }
+  sidecar:
+    dashboards:
+      searchNamespace: mtc-observability
+    datasources:
+      uid: prometheus
+  grafana.ini:
+    analytics:
+      reporting_enabled: false
+      check_for_updates: false
+    users:
+      allow_sign_up: false
+prometheus:
+  prometheusSpec:
+    replicas: 1
+    retention: 24h
+    retentionSize: 1GB
+    scrapeInterval: 15s
+    evaluationInterval: 15s
+    resources:
+      requests: { cpu: 200m, memory: 512Mi }
+      limits: { cpu: 1000m, memory: 1536Mi }
+    serviceMonitorSelector:
+      matchLabels: { release: monitoring }
+    podMonitorSelector:
+      matchLabels: { release: monitoring }
+    podMonitorNamespaceSelector:
+      matchLabels: { mtc-managed: "true" }
+    serviceMonitorNamespaceSelector:
+      matchLabels: { mtc-managed: "true" }
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: mtc-local
+          volumeName: mtc-prometheus
+          accessModes: [ReadWriteOnce]
+          resources: { requests: { storage: 2Gi } }
+alertmanager:
+  alertmanagerSpec:
+    resources:
+      requests: { cpu: 25m, memory: 64Mi }
+      limits: { cpu: 200m, memory: 192Mi }
+prometheusOperator:
+  resources:
+    requests: { cpu: 50m, memory: 128Mi }
+    limits: { cpu: 500m, memory: 384Mi }
+kube-state-metrics:
+  resources:
+    requests: { cpu: 25m, memory: 64Mi }
+    limits: { cpu: 300m, memory: 192Mi }
+prometheus-node-exporter:
+  resources:
+    requests: { cpu: 25m, memory: 32Mi }
+    limits: { cpu: 200m, memory: 96Mi }

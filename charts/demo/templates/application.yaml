@@ -1,0 +1,120 @@
+{{- range $variant := list "stable" "canary" }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: demo-{{ $variant }}-config
+  labels:
+    app.kubernetes.io/name: demo-nginx
+    app.kubernetes.io/part-of: mtc-devops
+data:
+  nginx.conf: |
+    worker_processes auto;
+    pid /tmp/nginx.pid;
+    error_log /dev/stderr warn;
+    events { worker_connections 1024; }
+    http {
+      default_type text/plain;
+      client_body_temp_path /tmp/client_temp;
+      proxy_temp_path /tmp/proxy_temp;
+      fastcgi_temp_path /tmp/fastcgi_temp;
+      uwsgi_temp_path /tmp/uwsgi_temp;
+      scgi_temp_path /tmp/scgi_temp;
+      log_format access_json escape=json '{"timestamp":"$time_iso8601","method":"$request_method","uri":"$request_uri","status":$status,"request_time":$request_time,"request_id":"$http_x_request_id","version":"{{ $variant }}"}';
+      access_log /dev/stdout access_json;
+      server {
+        listen 8080;
+        server_tokens off;
+        add_header X-Demo-Version "{{ $variant }}" always;
+        location = /healthz { access_log off; return 200 "ok\n"; }
+        location /error-test { root /usr/share/nginx/html; }
+        location / { return 200 "Hello World! version={{ $variant }}\n"; }
+      }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-{{ $variant }}
+  labels:
+    app.kubernetes.io/name: demo-nginx
+    app.kubernetes.io/version: {{ $variant }}
+    app.kubernetes.io/part-of: mtc-devops
+spec:
+  replicas: {{ if eq $variant "stable" }}{{ $.Values.stableReplicas }}{{ else }}{{ $.Values.canaryReplicas }}{{ end }}
+  revisionHistoryLimit: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: { maxUnavailable: 0, maxSurge: 1 }
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: demo-nginx
+      app.kubernetes.io/version: {{ $variant }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: demo-nginx
+        app.kubernetes.io/version: {{ $variant }}
+        app.kubernetes.io/part-of: mtc-devops
+      annotations:
+        checksum/config: {{ $.Values.configRevision | quote }}
+    spec:
+      terminationGracePeriodSeconds: 30
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101
+        runAsGroup: 101
+        fsGroup: 101
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: nginx
+          image: {{ $.Values.image | quote }}
+          imagePullPolicy: IfNotPresent
+          command: [nginx, -g, "daemon off;"]
+          lifecycle:
+            preStop:
+              exec:
+                command: [sh, -c, 'sleep 5; nginx -s quit']
+          ports: [{ name: http, containerPort: 8080 }]
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+          resources:
+            requests: { cpu: 25m, memory: 32Mi }
+            limits: { cpu: 300m, memory: 96Mi }
+          readinessProbe:
+            httpGet: { path: /healthz, port: http }
+            initialDelaySeconds: 2
+            periodSeconds: 3
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          startupProbe:
+            httpGet: { path: /healthz, port: http }
+            failureThreshold: 20
+            periodSeconds: 2
+          volumeMounts:
+            - { name: config, mountPath: /etc/nginx, readOnly: true }
+            - { name: temporary, mountPath: /tmp }
+      volumes:
+        - name: config
+          configMap: { name: demo-{{ $variant }}-config }
+        - name: temporary
+          emptyDir: { sizeLimit: 64Mi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: demo-{{ $variant }}
+  labels:
+    app.kubernetes.io/name: demo-nginx
+    app.kubernetes.io/version: {{ $variant }}
+spec:
+  selector:
+    app.kubernetes.io/name: demo-nginx
+    app.kubernetes.io/version: {{ $variant }}
+  ports: [{ name: http, port: 80, targetPort: http }]
+{{- end }}

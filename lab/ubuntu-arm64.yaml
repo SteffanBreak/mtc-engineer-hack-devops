@@ -1,0 +1,41 @@
+vmType: vz
+arch: aarch64
+cpus: 4
+memory: 8GiB
+disk: 24GiB
+images:
+  - location: https://cloud-images.ubuntu.com/releases/noble/release-20260926/ubuntu-24.04-server-cloudimg-arm64.img
+    arch: aarch64
+    digest: sha256:1d6bffe64b848468ac97f821d369a4846d983de1800ccf6b5ec8853e85cefc55
+mounts: []
+containerd:
+  system: false
+  user: false
+ssh:
+  loadDotSSHPubKeys: false
+  forwardAgent: false
+  forwardX11: false
+user:
+  name: devops
+  comment: MTC DevOps isolated lab
+  uid: 1000
+  home: /home/devops
+  shell: /bin/bash
+  passwordlessSudo: true
+timezone: UTC
+upgradePackages: false
+portForwards:
+  - guestPort: 30080
+    hostPort: 18080
+    hostIP: 127.0.0.1
+    guestIP: 0.0.0.0
+    guestIPMustBeZero: false
+  - guestPort: 30443
+    hostPort: 18443
+    hostIP: 127.0.0.1
+    guestIP: 0.0.0.0
+    guestIPMustBeZero: false
+  - guestPortRange: [1, 65535]
+    guestIP: 0.0.0.0
+    proto: any
+    ignore: true

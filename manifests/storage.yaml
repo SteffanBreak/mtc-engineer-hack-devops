@@ -1,0 +1,76 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: mtc-local
+provisioner: kubernetes.io/no-provisioner
+volumeBindingMode: WaitForFirstConsumer
+reclaimPolicy: Retain
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: mtc-loki
+  labels: { mtc-volume: loki }
+spec:
+  capacity: { storage: 2Gi }
+  accessModes: [ReadWriteOnce]
+  storageClassName: mtc-local
+  persistentVolumeReclaimPolicy: Retain
+  local: { path: /var/lib/mtc-devops/storage/loki }
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - { key: kubernetes.io/hostname, operator: In, values: [__MTC_NODE_NAME__] }
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: mtc-prometheus
+  labels: { mtc-volume: prometheus }
+spec:
+  capacity: { storage: 2Gi }
+  accessModes: [ReadWriteOnce]
+  storageClassName: mtc-local
+  persistentVolumeReclaimPolicy: Retain
+  local: { path: /var/lib/mtc-devops/storage/prometheus }
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - { key: kubernetes.io/hostname, operator: In, values: [__MTC_NODE_NAME__] }
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: mtc-grafana
+  labels: { mtc-volume: grafana }
+spec:
+  capacity: { storage: 1Gi }
+  accessModes: [ReadWriteOnce]
+  storageClassName: mtc-local
+  persistentVolumeReclaimPolicy: Retain
+  local: { path: /var/lib/mtc-devops/storage/grafana }
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - { key: kubernetes.io/hostname, operator: In, values: [__MTC_NODE_NAME__] }
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata: { name: mtc-loki, namespace: mtc-observability }
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: mtc-local
+  volumeName: mtc-loki
+  resources: { requests: { storage: 2Gi } }
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata: { name: mtc-grafana, namespace: mtc-observability }
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: mtc-local
+  volumeName: mtc-grafana
+  resources: { requests: { storage: 1Gi } }

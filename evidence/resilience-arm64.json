@@ -1,0 +1,8 @@
+{
+  "time_utc": "2026-10-04T09:39:33.842282+00:00",
+  "passed": true,
+  "rolling_http_requests": 55,
+  "rolling_http_failures": 0,
+  "loki_original_record_preserved": true,
+  "prometheus_historical_sample_preserved": true
+}

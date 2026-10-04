@@ -1,0 +1,140 @@
+{
+  "time_utc": "2026-10-04T09:27:58.571972+00:00",
+  "passed": true,
+  "checks": [
+    {
+      "check": "dedicated cluster",
+      "passed": true,
+      "detail": "namespace marker"
+    },
+    {
+      "check": "node Ready",
+      "passed": true,
+      "detail": "1 node(s)"
+    },
+    {
+      "check": "Gateway Accepted + Programmed",
+      "passed": true,
+      "detail": "current generation"
+    },
+    {
+      "check": "HTTPRoute demo-routes",
+      "passed": true,
+      "detail": "Accepted + ResolvedRefs"
+    },
+    {
+      "check": "HTTPRoute demo-split",
+      "passed": true,
+      "detail": "Accepted + ResolvedRefs"
+    },
+    {
+      "check": "deployments Ready",
+      "passed": true,
+      "detail": "7 deployments"
+    },
+    {
+      "check": "persistent volumes",
+      "passed": true,
+      "detail": "mtc-grafana, mtc-loki, prometheus-mtc-monitoring-prometheus-db-prometheus-mtc-monitoring-prometheus-0"
+    },
+    {
+      "check": "HTTP Hello World",
+      "passed": true,
+      "detail": "stable through Gateway"
+    },
+    {
+      "check": "path routing",
+      "passed": true,
+      "detail": "/canary → canary"
+    },
+    {
+      "check": "TLS with certificate verification",
+      "passed": true,
+      "detail": "SAN demo.mtc.test + trusted demo certificate"
+    },
+    {
+      "check": "hostname isolation",
+      "passed": true,
+      "detail": "unknown hostname rejected"
+    },
+    {
+      "check": "error log trigger",
+      "passed": true,
+      "detail": "Nginx access + file error"
+    },
+    {
+      "check": "Prometheus present",
+      "passed": true,
+      "detail": "one persistent Prometheus replica"
+    },
+    {
+      "check": "Prometheus target envoy",
+      "passed": true,
+      "detail": "2 healthy target(s)"
+    },
+    {
+      "check": "Prometheus target node-exporter",
+      "passed": true,
+      "detail": "1 healthy target(s)"
+    },
+    {
+      "check": "Prometheus target kube-state-metrics",
+      "passed": true,
+      "detail": "1 healthy target(s)"
+    },
+    {
+      "check": "Prometheus target loki",
+      "passed": true,
+      "detail": "1 healthy target(s)"
+    },
+    {
+      "check": "Prometheus target kubelet",
+      "passed": true,
+      "detail": "3 healthy target(s)"
+    },
+    {
+      "check": "PromQL CPU",
+      "passed": true,
+      "detail": "cAdvisor application CPU sample"
+    },
+    {
+      "check": "PromQL RAM",
+      "passed": true,
+      "detail": "application working set > 0"
+    },
+    {
+      "check": "PromQL HTTP requests",
+      "passed": true,
+      "detail": "request counter=31"
+    },
+    {
+      "check": "HTTP counter increases after 20 requests",
+      "passed": true,
+      "detail": "application listeners only; next scrape"
+    },
+    {
+      "check": "all selected Prometheus targets healthy",
+      "passed": true,
+      "detail": "17 healthy targets"
+    },
+    {
+      "check": "Fluentd → Loki stdout",
+      "passed": true,
+      "detail": "mtc-check-6705c633decb46ec9c3c4cef8e284b02"
+    },
+    {
+      "check": "Fluentd → Loki stderr",
+      "passed": true,
+      "detail": "mtc-check-6705c633decb46ec9c3c4cef8e284b02"
+    },
+    {
+      "check": "weighted backends 90/10",
+      "passed": true,
+      "detail": {
+        "stable": 180,
+        "canary": 20
+      }
+    }
+  ],
+  "error": null
+}

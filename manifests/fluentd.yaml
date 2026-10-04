@@ -1,0 +1,119 @@
+apiVersion: v1
+kind: ConfigMap
+metadata: { name: mtc-fluentd-config, namespace: mtc-observability }
+data:
+  fluent.conf: |
+    <system>
+      log_level info
+    </system>
+    <source>
+      @type monitor_agent
+      bind 0.0.0.0
+      port 24220
+    </source>
+    <source>
+      @type tail
+      @id application_container_logs
+      path /var/log/containers/*_mtc-lab_nginx-*.log
+      path_key source
+      pos_file /buffers/containers.pos
+      read_from_head true
+      rotate_wait 5
+      tag mtc.app
+      <parse>
+        @type regexp
+        expression /^(?<time>[^ ]+) (?<stream>stdout|stderr) (?<logtag>[^ ]+) (?<log>.*)$/
+        time_format %Y-%m-%dT%H:%M:%S.%N%:z
+        keep_time_key true
+      </parse>
+    </source>
+    <filter mtc.app>
+      @type record_transformer
+      <record>
+        app mtc-demo
+        namespace mtc-lab
+        node "#{ENV['NODE_NAME']}"
+      </record>
+    </filter>
+    <match mtc.app>
+      @type loki
+      url http://mtc-loki.mtc-observability.svc.cluster.local:3100
+      line_format json
+      <label>
+        app
+        namespace
+        node
+        stream
+      </label>
+      <buffer>
+        @type file
+        path /buffers/loki
+        flush_interval 2s
+        flush_thread_count 1
+        chunk_limit_size 1m
+        total_limit_size 256m
+        retry_type exponential_backoff
+        retry_max_interval 30s
+        retry_forever true
+        overflow_action block
+      </buffer>
+    </match>
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata: { name: mtc-fluentd, namespace: mtc-observability }
+spec:
+  selector: { matchLabels: { app: mtc-fluentd } }
+  template:
+    metadata:
+      labels: { app: mtc-fluentd }
+      annotations:
+        checksum/config: __MTC_SOURCE_HASH__
+        checksum/image: __MTC_FLUENTD_HASH__
+    # Content hash triggers rollout when the ConfigMap or pod source changes.
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: fluentd
+          image: __FLUENTD_IMAGE__
+          imagePullPolicy: Never
+          command: [sh, -ec]
+          args: ['umask 077; mkdir -p /tmp/fluentd; chmod 700 /tmp/fluentd; exec fluentd -c /fluentd/etc/fluent.conf']
+          env:
+            - { name: TMPDIR, value: /tmp/fluentd }
+            - name: NODE_NAME
+              valueFrom: { fieldRef: { fieldPath: spec.nodeName } }
+          ports: [{ name: health, containerPort: 24220 }]
+          readinessProbe:
+            httpGet: { path: /api/plugins.json, port: health }
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: { path: /api/plugins.json, port: health }
+            initialDelaySeconds: 30
+            periodSeconds: 15
+          resources:
+            requests: { cpu: 50m, memory: 128Mi }
+            limits: { cpu: 500m, memory: 384Mi }
+          # Root is necessary to read node-owned container logs; no capabilities
+          # or host process/network access are granted, and host logs are read-only.
+          securityContext:
+            runAsUser: 0
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+          volumeMounts:
+            - { name: config, mountPath: /fluentd/etc, readOnly: true }
+            - { name: host-logs, mountPath: /var/log, readOnly: true }
+            - { name: buffers, mountPath: /buffers }
+            - { name: tmp, mountPath: /tmp }
+      volumes:
+        - name: config
+          configMap: { name: mtc-fluentd-config }
+        - name: host-logs
+          hostPath: { path: /var/log, type: Directory }
+        - name: buffers
+          hostPath: { path: /var/lib/mtc-devops/storage/fluentd, type: Directory }
+        - name: tmp
+          emptyDir: { sizeLimit: 64Mi }

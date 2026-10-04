@@ -1,0 +1,6 @@
+deployment:
+  replicas: 1
+  envoyGateway:
+    resources:
+      requests: { cpu: 100m, memory: 192Mi }
+      limits: { cpu: 700m, memory: 512Mi }

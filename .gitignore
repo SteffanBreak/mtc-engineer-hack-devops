@@ -1,0 +1,8 @@
+.local/
+*.key
+*.pem
+*.kubeconfig
+inventory.local.yml
+__pycache__/
+.venv/
+.DS_Store

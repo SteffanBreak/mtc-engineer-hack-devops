@@ -1,0 +1,88 @@
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyProxy
+metadata:
+  name: mtc-proxy
+  namespace: mtc-lab
+spec:
+  provider:
+    type: Kubernetes
+    kubernetes:
+      envoyDeployment:
+        replicas: 2
+        container:
+          resources:
+            requests: { cpu: 50m, memory: 128Mi }
+            limits: { cpu: 700m, memory: 384Mi }
+      envoyService:
+        type: NodePort
+        patch:
+          type: StrategicMerge
+          value:
+            spec:
+              ports:
+                - { name: http, port: 80, nodePort: 30080 }
+                - { name: https, port: 443, nodePort: 30443 }
+  telemetry:
+    metrics:
+      prometheus:
+        disable: false
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: mtc-envoy
+spec:
+  controllerName: gateway.envoyproxy.io/gatewayclass-controller
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: mtc-gateway
+  namespace: mtc-lab
+spec:
+  gatewayClassName: mtc-envoy
+  infrastructure:
+    parametersRef:
+      group: gateway.envoyproxy.io
+      kind: EnvoyProxy
+      name: mtc-proxy
+  listeners:
+    - name: http
+      protocol: HTTP
+      port: 80
+      allowedRoutes: { namespaces: { from: Same } }
+    - name: https
+      protocol: HTTPS
+      port: 443
+      hostname: "*.mtc.test"
+      tls:
+        mode: Terminate
+        certificateRefs: [{ kind: Secret, name: mtc-demo-tls }]
+      allowedRoutes: { namespaces: { from: Same } }
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: demo-routes
+  namespace: mtc-lab
+spec:
+  parentRefs: [{ name: mtc-gateway }]
+  hostnames: [demo.mtc.test]
+  rules:
+    - matches: [{ path: { type: PathPrefix, value: /canary } }]
+      backendRefs: [{ name: demo-canary, port: 80 }]
+    - matches: [{ path: { type: PathPrefix, value: / } }]
+      backendRefs: [{ name: demo-stable, port: 80 }]
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: demo-split
+  namespace: mtc-lab
+spec:
+  parentRefs: [{ name: mtc-gateway }]
+  hostnames: [split.mtc.test]
+  rules:
+    - backendRefs:
+        - { name: demo-stable, port: 80, weight: 90 }
+        - { name: demo-canary, port: 80, weight: 10 }

@@ -1,0 +1,53 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: mtc-envoy-proxy
+  namespace: mtc-observability
+  labels: { release: monitoring }
+spec:
+  namespaceSelector:
+    matchNames: [envoy-gateway-system]
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: envoy
+      app.kubernetes.io/component: proxy
+  podMetricsEndpoints:
+    - port: metrics
+      path: /stats/prometheus
+      interval: 15s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: mtc-loki
+  namespace: mtc-observability
+  labels: { release: monitoring }
+spec:
+  selector: { matchLabels: { app: mtc-loki } }
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 15s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: mtc-demo-alerts
+  namespace: mtc-observability
+  labels: { release: monitoring }
+spec:
+  groups:
+    - name: mtc-demo
+      rules:
+        - alert: MtcApplicationUnavailable
+          expr: kube_deployment_status_replicas_available{namespace="mtc-lab",deployment="demo-stable"} < 1
+          for: 1m
+          labels: { severity: critical }
+          annotations:
+            summary: "The stable demo application has no ready replicas"
+        - alert: MtcLokiUnavailable
+          expr: up{service="mtc-loki"} == 0
+          for: 1m
+          labels: { severity: warning }
+          annotations:
+            summary: "Loki is unavailable to Prometheus"
