@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-"""Fetch only the pinned monitoring images on this project's dedicated host."""
 from concurrent.futures import ThreadPoolExecutor
 import os
 from pathlib import Path

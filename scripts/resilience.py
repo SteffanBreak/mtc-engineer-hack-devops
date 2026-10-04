@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-"""Controlled rolling update and persistence checks, only on this managed lab."""
 import datetime
 import json
 from pathlib import Path

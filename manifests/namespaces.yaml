@@ -13,7 +13,6 @@ metadata:
   name: mtc-observability
   labels:
     mtc-managed: "true"
-    # Node exporter and Fluentd need host network/log access. App namespace stays restricted.
     pod-security.kubernetes.io/enforce: privileged
 ---
 apiVersion: v1

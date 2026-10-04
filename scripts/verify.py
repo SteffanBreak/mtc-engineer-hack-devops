@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-"""Real requests, Gateway conditions, Prometheus samples and Fluentd → Loki."""
 import argparse
 import base64
 import contextlib

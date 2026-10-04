@@ -6,11 +6,12 @@
 
 Установите Lima из [официального релиза 2.2.1](https://github.com/lima-vm/lima/releases/tag/v2.2.1) и сверяйте checksums. Не запускайте шаблон в чужой существующей VM. Сначала задайте новый LIMA_HOME в отдельном каталоге и создайте новую машину:
 
+Передавайте только публичные исходники; не копируйте `.local`, `.git` или файлы VM.
+
 ```bash
 export LIMA_HOME="$PWD/.local/lima"
 limactl start --name=mtc --tty=false lab/ubuntu-arm64.yaml
 limactl shell --workdir=/home/devops mtc -- mkdir -p mtc-devops
-# Передавайте только публичные исходники; не копируйте .local, .git или VM.
 limactl copy -r config scripts charts manifests values dashboards images lab Makefile mtc:/home/devops/mtc-devops/
 limactl shell --workdir=/home/devops/mtc-devops mtc -- sudo bash scripts/bootstrap.sh --dedicated-host
 limactl shell --workdir=/home/devops/mtc-devops mtc -- make deploy

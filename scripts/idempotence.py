@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-"""Compare cluster, PVC, Secret and ready Pod identities across an unchanged deployment."""
 import argparse
 import datetime
 import hashlib

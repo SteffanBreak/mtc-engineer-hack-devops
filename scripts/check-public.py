@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-"""Inspect only public project sources; never open the private .local directory."""
 import json
 from pathlib import Path
 import re
@@ -20,7 +19,7 @@ for name in filter(None, names):
         violations.append(name + ': private path included')
         continue
     if path == Path(__file__).resolve():
-        continue  # Pattern definitions contain example key headers, not credentials.
+        continue
     data = path.read_bytes()
     text = data.decode('utf-8', errors='replace')
     if any(re.search(p, text) for p in patterns):

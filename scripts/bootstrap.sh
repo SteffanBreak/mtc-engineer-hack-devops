@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# Only run on a dedicated Ubuntu 24.04 machine. Never resets existing clusters.
 set -Eeuo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
 [[ "${EUID}" -eq 0 ]] || fail 'Run bootstrap with sudo on the dedicated Ubuntu host.'
@@ -10,7 +9,6 @@ source /etc/os-release
 if [[ -e /etc/kubernetes/admin.conf && ! -e /var/lib/mtc-devops/managed ]]; then
   fail 'An existing Kubernetes cluster was found. It will not be modified.'
 fi
-# Validate an existing lab before changing any host packages or configuration.
 if [[ -e /etc/kubernetes/admin.conf ]]; then
   MTC_PREFLIGHT_VERSION="$(KUBECONFIG=/etc/kubernetes/admin.conf kubectl version -o json | python3 -c 'import json,sys; print(json.load(sys.stdin)["serverVersion"]["gitVersion"])')"
   [[ "${MTC_PREFLIGHT_VERSION}" == "${KUBERNETES_VERSION}" ]] || fail 'Existing cluster version differs; no host changes were made.'
@@ -109,7 +107,6 @@ fi
 
 log "Install Calico ${CALICO_VERSION}"
 curl --fail --silent --show-error --location --retry 3 "https://raw.githubusercontent.com/projectcalico/calico/${CALICO_VERSION}/manifests/calico.yaml" -o /var/lib/mtc-devops/calico.upstream.yaml
-# Calico uses the subnet defined in kubeadm; set it explicitly for reproducibility.
 python3 - /var/lib/mtc-devops/calico.upstream.yaml /var/lib/mtc-devops/calico.yaml <<'PY'
 import sys
 from pathlib import Path
@@ -121,7 +118,6 @@ text = text.replace(needle, '- name: CALICO_IPV4POOL_CIDR\n              value: 
 Path(sys.argv[2]).write_text(text)
 PY
 kubectl apply --server-side -f /var/lib/mtc-devops/calico.yaml
-# Scheduling on this dedicated single-node demonstration cluster is intentional.
 if kubectl get node "$(hostname)" -o json | python3 -c 'import json,sys; t=json.load(sys.stdin)["spec"].get("taints",[]); sys.exit(0 if any(x["key"]=="node-role.kubernetes.io/control-plane" for x in t) else 1)'; then
   kubectl taint node "$(hostname)" node-role.kubernetes.io/control-plane:NoSchedule-
 fi

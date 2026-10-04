@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# Optional Mac/Lima access adapter; native Ubuntu clients use NodePort directly.
 set -Eeuo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
 [[ "${EUID}" -eq 0 && -e /var/lib/mtc-devops/cluster.uid ]] || fail 'Dedicated lab + sudo required.'

@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-"""Render explicitly named tokens without touching Nginx or shell variables."""
 import os
 import hashlib
 import re

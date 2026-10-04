@@ -11,8 +11,6 @@ kubeEtcd: { enabled: false }
 kubeScheduler: { enabled: false }
 kubeControllerManager: { enabled: false }
 kubeProxy: { enabled: false }
-# kubeadm binds these endpoints to loopback. We leave that protection in place
-# and explicitly omit the corresponding targets/rules rather than show broken targets.
 grafana:
   enabled: true
   admin:

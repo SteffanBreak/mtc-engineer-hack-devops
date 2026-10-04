@@ -70,7 +70,6 @@ spec:
       annotations:
         checksum/config: __MTC_SOURCE_HASH__
         checksum/image: __MTC_FLUENTD_HASH__
-    # Content hash triggers rollout when the ConfigMap or pod source changes.
     spec:
       automountServiceAccountToken: false
       securityContext:
@@ -96,8 +95,6 @@ spec:
           resources:
             requests: { cpu: 50m, memory: 128Mi }
             limits: { cpu: 500m, memory: 384Mi }
-          # Root is necessary to read node-owned container logs; no capabilities
-          # or host process/network access are granted, and host logs are read-only.
           securityContext:
             runAsUser: 0
             allowPrivilegeEscalation: false
