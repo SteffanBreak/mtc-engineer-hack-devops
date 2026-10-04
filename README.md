@@ -40,7 +40,7 @@ make resilience
 
 `scripts/bootstrap.sh` устанавливает Make и фиксированные версии containerd/runc, kubeadm/kubelet/kubectl, Calico и Helm. Существующий кластер без маркера проекта приводит к остановке, а не к переинициализации. `make deploy` готовит тома и секреты, устанавливает Helm releases, собирает образ Fluentd на текущей архитектуре и импортирует его в containerd. `make verify` проверяет действующие компоненты и реальные данные. `make demo` дополнительно проверяет распределение между stable/canary на 200 запросах.
 
-**Повторный запуск:** выполните `make bootstrap && make deploy && make verify` ещё раз. Скрипт bootstrap сохраняет кластер; TLS-ключ и пароль Grafana не генерируются повторно; PV/PVC и данные остаются; неизменный Dockerfile не пересобирается. Helm upgrade может увеличивать номер ревизии release, даже если Pod не пересоздаются.
+**Повторный запуск:** выполните `make idempotence`. Он снимает приватный baseline, повторяет bootstrap/deploy, сравнивает UID кластера и PVC, содержимое секретов и рабочие Pod, затем запускает verify. Скрипт bootstrap сохраняет кластер; TLS-ключ и пароль Grafana не генерируются повторно; PV/PVC и данные остаются; неизменный Dockerfile не пересобирается. Helm upgrade может увеличивать номер ревизии release, даже если Pod не пересоздаются.
 
 Результат автоматической проверки сохраняется в `.local/verification.json`. Каталог `.local` содержит приватные данные стенда, включён в `.gitignore` и не публикуется.
 
@@ -145,7 +145,7 @@ Fluentd читает только CRI-файлы контейнера `nginx` na
 | Reliability / security | probes, resources, 2 stable + 2 proxy, PDB, NetworkPolicy, PV Retain | readiness, rollout и проверки восстановления |
 | CI | `.github/workflows/validate.yml` | shell syntax / Helm lint+render / YAML duplicate keys / source secret patterns |
 
-CI проверяет исходники; реальная интеграционная проверка выполняется `make verify` на Ubuntu с kubeadm. Положительный lint не подменяет функциональную проверку. Отчёт о фактически выполненных проверках будет в `evidence/`.
+CI проверяет исходники; реальная интеграционная проверка выполняется `make verify` на Ubuntu с kubeadm. Положительный lint не подменяет функциональную проверку. Отчёты о фактически выполненных проверках находятся в `evidence/`, включая полный запуск на второй чистой Ubuntu.
 
 `make resilience` выполняет контролируемый rolling update stable под HTTP-запросами, затем перезапускает Loki и Prometheus и проверяет сохранение исходной записи журнала и исторического sample. Он работает только при совпадении UID стенда. В успешном прогоне приложение обработало 55 запросов без ошибок; результаты: `evidence/resilience-arm64.json`. Для плавного ухода Pod с трафика используется preStop с паузой и `nginx -s quit`.
 

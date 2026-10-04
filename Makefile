@@ -1,4 +1,4 @@
-.PHONY: bootstrap deploy verify demo resilience lint status
+.PHONY: bootstrap deploy verify demo resilience idempotence lint status
 
 bootstrap:
 	sudo bash scripts/bootstrap.sh --dedicated-host
@@ -13,6 +13,12 @@ demo:
 	python3 scripts/verify.py --extended
 resilience:
 	python3 scripts/resilience.py
+idempotence:
+	python3 scripts/idempotence.py --capture
+	$(MAKE) bootstrap
+	$(MAKE) deploy
+	python3 scripts/idempotence.py
+	$(MAKE) verify
 
 lint:
 	bash scripts/lint.sh

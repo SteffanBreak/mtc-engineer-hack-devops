@@ -140,10 +140,13 @@ def main(extended):
     check('Prometheus present', len(prom_pods) == 1, 'one persistent Prometheus replica')
     with forward('pod/' + prom_pods[0]['metadata']['name'], 9090) as prom:
         active = wait_for(lambda: api(prom, '/api/v1/targets')['activeTargets'])
-        healthy = [t for t in active if t['health'] == 'up']
         required_jobs = ['envoy', 'node-exporter', 'kube-state-metrics', 'loki', 'kubelet']
         for job in required_jobs:
-            matched = [t for t in healthy if job in (t['labels'].get('job', '') + t['scrapePool'])]
+            def healthy_job():
+                current = api(prom, '/api/v1/targets')['activeTargets']
+                return [t for t in current if t['health'] == 'up' and
+                        job in (t['labels'].get('job', '') + t['scrapePool'])]
+            matched = wait_for(healthy_job)
             check('Prometheus target ' + job, bool(matched), f'{len(matched)} healthy target(s)')
         def query(expr):
             return api(prom, '/api/v1/query', {'query': expr})['result']
@@ -167,6 +170,7 @@ def main(extended):
             if panel['datasource']['type'] == 'prometheus':
                 samples = wait_for(lambda: query(panel['targets'][0]['expr']))
                 check('dashboard PromQL ' + panel['title'], bool(samples), f'{len(samples)} series')
+        active = api(prom, '/api/v1/targets')['activeTargets']
         bad = [t['labels'].get('job', t['scrapePool']) for t in active if t['health'] != 'up']
         check('all selected Prometheus targets healthy', not bad, bad or f'{len(active)} healthy targets')
 
