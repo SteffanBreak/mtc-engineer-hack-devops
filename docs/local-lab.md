@@ -11,11 +11,14 @@ export LIMA_HOME="$PWD/.local/lima"
 limactl start --name=mtc --tty=false lab/ubuntu-arm64.yaml
 limactl shell --workdir=/home/devops mtc -- mkdir -p mtc-devops
 # Передавайте только публичные исходники; не копируйте .local, .git или VM.
-limactl copy -r config scripts charts manifests values dashboards images Makefile mtc:/home/devops/mtc-devops/
+limactl copy -r config scripts charts manifests values dashboards images lab Makefile mtc:/home/devops/mtc-devops/
 limactl shell --workdir=/home/devops/mtc-devops mtc -- sudo bash scripts/bootstrap.sh --dedicated-host
 limactl shell --workdir=/home/devops/mtc-devops mtc -- make deploy
 limactl shell --workdir=/home/devops/mtc-devops mtc -- make verify
+limactl shell --workdir=/home/devops/mtc-devops mtc -- sudo bash scripts/lima-access.sh
 ```
+
+NodePort реализуется правилами kube-proxy и не имеет listening socket для автообнаружения Lima. Дополнительный `lima-access.sh` создаёт внутри VM два socat listener (18080/18443), которые перенаправляют байты на NodePort Envoy; HTTPS остаётся сквозным. Он также добавляет отдельный HTTPRoute для имени localhost, чтобы в браузере можно было открыть http://localhost:18080/ без правки Mac hosts. Для обычной Ubuntu этот адаптер не нужен.
 
 Запрос с Mac: `curl -H 'Host: demo.mtc.test' http://127.0.0.1:18080/`. Для HTTPS копируйте только публичный сертификат `server.crt` (не private key) и используйте `--resolve demo.mtc.test:18443:127.0.0.1 --cacert server.crt`.
 

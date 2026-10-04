@@ -25,17 +25,18 @@ user:
 timezone: UTC
 upgradePackages: false
 portForwards:
-  - guestPort: 30080
+  - guestPort: 18080
     hostPort: 18080
     hostIP: 127.0.0.1
     guestIP: 0.0.0.0
     guestIPMustBeZero: false
-  - guestPort: 30443
+  - guestPort: 18443
     hostPort: 18443
     hostIP: 127.0.0.1
     guestIP: 0.0.0.0
     guestIPMustBeZero: false
   - guestPortRange: [1, 65535]
     guestIP: 0.0.0.0
+    guestIPMustBeZero: false
     proto: any
     ignore: true
