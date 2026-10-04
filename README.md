@@ -37,8 +37,11 @@ flowchart LR
 
 Нужна **новая Ubuntu 24.04 amd64 или arm64**, доступ sudo, минимум 2 CPU / 6 GiB RAM / 10 GB свободного диска; рекомендуется 4 CPU / 8 GiB / диск 24 GB или больше. Swap должен быть выключен. Интернет требуется для пакетов, Helm charts, образов и Ruby gem. Проверенный стенд: Ubuntu 24.04.5 arm64, 4 CPU, 8 GiB RAM.
 
+Команды развёртывания выполняются внутри этой Ubuntu. Для получения исходников нужен Git; если он отсутствует: `sudo apt-get update && sudo apt-get install -y git`.
+
 ```bash
-# Клонируйте main этого публичного репозитория, затем перейдите в его каталог.
+git clone --branch main https://github.com/SteffanBreak/mtc-engineer-hack-devops.git
+cd mtc-engineer-hack-devops
 sudo bash scripts/bootstrap.sh --dedicated-host
 make deploy
 make verify
@@ -51,6 +54,8 @@ make resilience
 **Повторный запуск:** выполните `make idempotence`. Он снимает приватный baseline, повторяет bootstrap/deploy, сравнивает UID кластера и PVC, содержимое секретов и рабочие Pod, затем запускает verify. Скрипт bootstrap сохраняет кластер; TLS-ключ и пароль Grafana не генерируются повторно; PV/PVC и данные остаются; неизменный Dockerfile не пересобирается. Helm upgrade может увеличивать номер ревизии release, даже если Pod не пересоздаются.
 
 Результат автоматической проверки сохраняется в `.local/verification.json`. Каталог `.local` содержит приватные данные стенда, включён в `.gitignore` и не публикуется.
+
+Для ознакомления с проектом: `scripts/` — установка и проверки; `charts/demo/` — приложение; `manifests/` — Gateway, хранилище и сбор журналов; `values/` — настройки Helm; `dashboards/` — Grafana; `evidence/` — результаты выполненных тестов. Дополнительный способ запуска на Apple Silicon описан в [локальном стенде](docs/local-lab.md).
 
 ## Проверить приложение вручную
 
