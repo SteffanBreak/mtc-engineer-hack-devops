@@ -7,7 +7,7 @@
 ## Архитектура
 
 ```mermaid
-flowchart LR
+flowchart TB
     Client[Клиент: Host + TLS] -->|30080 / 30443| Envoy[Envoy Proxy ×2]
     Controller[Envoy Gateway] -->|GatewayClass / Gateway / HTTPRoute| Envoy
     Envoy --> Stable[Service stable → Nginx ×2]
